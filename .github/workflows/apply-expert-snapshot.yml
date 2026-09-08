@@ -1,0 +1,25 @@
+name: Apply expert snapshot
+on:
+  push:
+    branches: [main]
+permissions:
+  contents: write
+jobs:
+  refresh:
+    if: github.event.head_commit.message == 'Trigger expert snapshot refresh'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Apply snapshot patch
+        run: python .github/scripts/refresh_expert_snapshot.py
+      - name: Commit refreshed snapshot
+        run: |
+          if git diff --quiet -- index.html; then
+            echo "No index change needed"
+            exit 0
+          fi
+          git config user.name "League HQ Bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add index.html
+          git commit -m "Refresh expert snapshot for Sep 8 2026"
+          git push
