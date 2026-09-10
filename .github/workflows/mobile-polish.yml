@@ -1,0 +1,37 @@
+name: Mobile Mockup Polish
+on:
+  push:
+    paths:
+      - '.github/workflows/mobile-polish.yml'
+permissions:
+  contents: write
+jobs:
+  polish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Tighten mobile layout to reference mockup
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('index.html')
+          s=p.read_text()
+          s=s.replace(".match{padding:10px 3px;border-top:1px solid #d9d6cf;cursor:pointer}",".match{padding:6px 3px;border-top:1px solid #d9d6cf;cursor:pointer}")
+          s=s.replace(".avatar{width:34px;height:34px", ".avatar{width:29px;height:29px")
+          s=s.replace(".score{font-size:18px", ".score{font-size:15px")
+          s=s.replace(".proj{font-size:8px", ".proj{font-size:7px")
+          s=s.replace(".versus{text-align:center;color:var(--green);font-size:8px;font-weight:1000;padding:2px}",".versus{text-align:center;color:var(--green);font-size:7px;font-weight:1000;padding:0;line-height:1.1}")
+          s=s.replace(".featuretitle{padding:12px 13px 7px}.featuretitle img{width:82px}.featuretitle h1{font-size:28px}.featurebody{padding:12px 13px}.rivalryteam .teamname{font-size:17px}.versusbig{font-size:32px}",".featuretitle{padding:8px 12px 5px}.featuretitle img{width:72px}.featuretitle h1{font-size:26px}.featurebody{padding:8px 12px 7px}.rivalryteam .teamname{font-size:15px}.versusbig{font-size:29px}.rivalrynote{margin:7px 0 1px;font-size:9px}")
+          s=s.replace(".topin{min-height:188px}.brandlock{width:min(330px,84vw)}", ".topin{min-height:174px}.brandlock{width:min(320px,82vw)}")
+          s=s.replace("main{padding:12px 0 30px}","main{padding:9px 0 30px}")
+          s=s.replace(".homegrid{display:grid;grid-template-columns:1fr 1fr;gap:11px;margin-top:11px}",".homegrid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:9px}")
+          s=s.replace(".sectionbar{display:flex;align-items:center;gap:7px", ".sectionbar{display:flex;align-items:center;gap:5px")
+          s=s.replace("padding:9px 11px;border-radius:15px 15px 0 0;font:1000 18px", "padding:7px 10px;border-radius:15px 15px 0 0;font:1000 16px")
+          s=s.replace(".sectionbar img{width:42px}",".sectionbar img{width:34px}")
+          p.write_text(s)
+          PY
+          git config user.name "League HQ Bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add index.html
+          git commit -m "Tighten mobile layout to match reference mockup"
+          git push
