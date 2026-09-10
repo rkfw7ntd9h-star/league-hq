@@ -1,0 +1,38 @@
+name: Refresh expert snapshot 2026-09-10
+on:
+  push:
+    paths:
+      - '.github/workflows/refresh-expert-snapshot-20260910.yml'
+permissions:
+  contents: write
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Update dated expert context
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          p=Path('index.html')
+          s=p.read_text()
+          new="""const EXPERT_SNAPSHOT={date:'2026-09-10',weights:'Sleeper live 50% / FantasyPros 25% / Fantasy Footballers 25%',fantasyPros:'Half-PPR Week 1 rankings refreshed Sep 10; top tier checked against current Sep 10 draft ECR',fantasyFootballers:'Public Week 1 rankings pages currently load without numeric consensus; Sep 9 matchup analysis + Sep 8 season-preview analysis refreshed, with prior public preseason rank values retained where available',coverage:'FantasyPros ranked context: 25 players; Fantasy Footballers ranked context: 17 players plus current public analysis context'};const FP={'jahmyrgibbs':1,'bijanrobinson':2,'jamarrchase':3,'jonathantaylor':4,'christianmccaffrey':5,'pukanacua':6,'devonachane':7,'amonrastbrown':8,'jaxonsmithnjigba':9,'saquonbarkley':10,'omarionhampton':11,'chasebrown':12,'ceedelamb':13,'justinjefferson':14,'ajbrown':15,'drakelondon':16,'nicocollins':17,'jamescookiii':18,'kennethwalkeriii':19,'brockbowers':20,'derrickhenry':21,'georgepickens':22,'ashtonjeanty':23,'chrisolave':24,'treymcbride':25},FFB={'jahmyrgibbs':1,'bijanrobinson':2,'jamarrchase':3,'amonrastbrown':6,'kennethwalkeriii':11,'garrettwilson':43,'omarionhampton':20,'christianwatson':58,'colstonloveland':34,'laddmcconkey':45,'calebwilliams':80,'joshallen':28,'brockbowers':20,'treymcbride':25,'christianmccaffrey':8,'ajbrown':14,'jamesonwilliams':35},norm="""
+          s,n=re.subn(r"const FP=\{.*?\},FFB=\{.*?\},norm=",new,s,count=1)
+          if n!=1: raise SystemExit('expert constants pattern not found')
+          old='<section class="page" id="page-power"><div class="sectiontitle"><h2>Power Rankings</h2></div>'
+          note='<section class="page" id="page-power"><div class="sectiontitle"><h2>Power Rankings</h2></div><div class="tiny" style="margin:0 4px 9px">HQ blend: <b>50% live Sleeper league/player data</b> + <b>25% FantasyPros</b> + <b>25% Fantasy Footballers</b>. Expert context is a dated snapshot (Sep 10, 2026); Sleeper data stays live.</div>'
+          if old in s: s=s.replace(old,note,1)
+          else: raise SystemExit('power section marker not found')
+          oldf='<small>TRAPHOUSE FANTASY LEAGUE • EST. 2013 • S 18th Av E</small>'
+          newf='<small>TRAPHOUSE FANTASY LEAGUE • EST. 2013 • S 18th Av E<br>Expert snapshot: Sep 10, 2026 • Sleeper league data: live</small>'
+          if oldf in s: s=s.replace(oldf,newf,1)
+          p.write_text(s)
+          PY
+      - name: Commit refresh
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html
+          git commit -m 'Refresh expert snapshot Sep 10 2026'
+          git push
