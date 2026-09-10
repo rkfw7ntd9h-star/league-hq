@@ -1,0 +1,33 @@
+name: Fix uploaded masthead framing
+on:
+  push:
+    paths:
+      - '.github/workflows/fix-masthead-framing.yml'
+permissions:
+  contents: write
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Make uploaded masthead image full width
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('index.html')
+          s=p.read_text()
+          s=s.replace(".top{background:linear-gradient(#07543d,#043c2c 78%,#032d22);position:relative;overflow:hidden;border-bottom:1px solid #167650}", ".top{background:#063f2d;position:relative;overflow:hidden;border-bottom:1px solid #167650}")
+          s=s.replace(".top:after{content:'';position:absolute;left:0;right:0;bottom:0;height:72px;background:linear-gradient(90deg,transparent 0 7%,rgba(0,0,0,.18) 7% 10%,transparent 10% 22%,rgba(0,0,0,.16) 22% 25%,transparent 25% 52%,rgba(0,0,0,.2) 52% 55%,transparent 55% 83%,rgba(0,0,0,.17) 83% 86%,transparent 86%);opacity:.65}", ".top:after{display:none}")
+          s=s.replace(".topin{min-height:248px;display:flex;align-items:center;justify-content:center;position:relative}", ".topin{width:100%;max-width:none;min-height:0;display:block;position:relative}")
+          s=s.replace(".brandlock{width:min(420px,78vw);position:relative;z-index:2;filter:drop-shadow(0 5px 4px rgba(0,0,0,.28))}", ".brandlock{display:block;width:100%;height:auto;position:relative;z-index:2;filter:none}")
+          s=s.replace(".topin{min-height:174px}.brandlock{width:min(320px,82vw)}", ".topin{min-height:0}.brandlock{width:100%;height:auto}")
+          s=s.replace('<header class="top"><div class="wrap topin"><img class="brandlock" src="assets/trap-lockup.svg" alt="Traphouse Fantasy League"></div></header>', '<header class="top"><div class="topin"><img class="brandlock" src="assets/trap-lockup.svg" alt="Traphouse Fantasy League"></div></header>')
+          p.write_text(s)
+          PY
+      - name: Commit masthead framing fix
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html
+          git commit -m "Use uploaded masthead image edge to edge" || exit 0
+          git push
