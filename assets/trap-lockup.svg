@@ -1,18 +1,41 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 330" role="img" aria-label="Traphouse Fantasy League crest">
-<defs><filter id="s" x="-20%" y="-20%" width="150%" height="160%"><feDropShadow dx="0" dy="7" stdDeviation="4" flood-color="#00140d" flood-opacity=".5"/></filter><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#0b8b59"/><stop offset="1" stop-color="#06432f"/></linearGradient></defs>
-<g filter="url(#s)">
-<!-- house -->
-<path d="M112 152V87L276 12l145 79v68z" fill="#f6f1e6" stroke="#07100c" stroke-width="12"/>
-<path d="M104 94L276 6l155 86" fill="none" stroke="#0b8b59" stroke-width="17"/><path d="M104 94L276 6l155 86" fill="none" stroke="#07100c" stroke-width="8"/>
-<path d="M160 153V84h74v69" fill="#f6f1e6" stroke="#07100c" stroke-width="8"/><rect x="177" y="97" width="39" height="48" fill="#a9c0c8" stroke="#0b8b59" stroke-width="6"/><path d="M196 98v46M177 120h39" stroke="#07100c" stroke-width="4"/>
-<path d="M339 153V91h47v62" fill="#f6f1e6" stroke="#07100c" stroke-width="7"/><rect x="351" y="107" width="24" height="46" fill="#b7b4a9" stroke="#07100c" stroke-width="4"/>
-<rect x="405" y="30" width="23" height="94" rx="4" fill="#eee" stroke="#07100c" stroke-width="8"/>
-<!-- squirrel on roof --> <image href="squirrel.svg" x="264" y="0" width="130" height="60"/>
-<!-- street sign -->
-<g transform="translate(352 54) rotate(7)"><rect x="0" y="0" width="184" height="62" rx="10" fill="#07513a" stroke="#07100c" stroke-width="10"/><rect x="6" y="6" width="172" height="50" rx="6" fill="none" stroke="#fff" stroke-width="4"/><text x="92" y="41" text-anchor="middle" font-family="Impact,Arial Narrow,sans-serif" font-size="29" fill="#fff">S 18th Av E</text></g>
-<!-- TRAP -->
-<text x="276" y="229" text-anchor="middle" font-family="Impact,Arial Narrow,sans-serif" font-size="128" letter-spacing="2" fill="#f8f4ea" stroke="#07100c" stroke-width="15" paint-order="stroke">TRAP</text><text x="276" y="229" text-anchor="middle" font-family="Impact,Arial Narrow,sans-serif" font-size="128" letter-spacing="2" fill="#f8f4ea" stroke="#0b8b59" stroke-width="4" paint-order="stroke">TRAP</text>
-<!-- center X detail --> <g transform="translate(274 166)" stroke="#07100c" stroke-width="5"><path d="M-9-9L9 9M9-9L-9 9"/></g>
-<rect x="176" y="238" width="200" height="42" rx="3" fill="#07100c" stroke="#0b8b59" stroke-width="6"/><text x="276" y="268" text-anchor="middle" font-family="Impact,Arial Narrow,sans-serif" font-size="26" letter-spacing="5" fill="#fff">EST. 2013</text>
-<rect x="113" y="289" width="326" height="31" rx="3" fill="url(#g)" stroke="#07100c" stroke-width="6"/><text x="276" y="311" text-anchor="middle" font-family="Impact,Arial Narrow,sans-serif" font-size="17" letter-spacing="1" fill="#fff">HOME OF THE GENTLEMAN’S TUCK</text>
-</g></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 300" role="img" aria-label="Traphouse Fantasy League crest">
+<defs>
+ <filter id="shadow" x="-20%" y="-20%" width="150%" height="160%"><feDropShadow dx="0" dy="5" stdDeviation="3" flood-color="#00140d" flood-opacity=".55"/></filter>
+ <pattern id="siding" width="12" height="12" patternUnits="userSpaceOnUse"><rect width="12" height="12" fill="#f6f1e6"/><path d="M0 11.5H12" stroke="#d6d0c3" stroke-width="1"/></pattern>
+</defs>
+<g filter="url(#shadow)">
+ <!-- full college house -->
+ <path d="M156 174V82L326 10l157 76v91z" fill="url(#siding)" stroke="#050b08" stroke-width="10"/>
+ <path d="M145 87L326 4l168 82" fill="none" stroke="#0a8a59" stroke-width="18"/>
+ <path d="M145 87L326 4l168 82" fill="none" stroke="#050b08" stroke-width="8"/>
+ <!-- upper gable -->
+ <path d="M218 95V62l108-52 93 48v39" fill="url(#siding)" stroke="#050b08" stroke-width="8"/>
+ <path d="M210 65L326 8l105 55" fill="none" stroke="#0a8a59" stroke-width="12"/>
+ <path d="M210 65L326 8l105 55" fill="none" stroke="#050b08" stroke-width="6"/>
+ <!-- upper window -->
+ <rect x="287" y="48" width="48" height="68" fill="#f4f0e6" stroke="#050b08" stroke-width="7"/>
+ <rect x="296" y="58" width="30" height="48" fill="#93aab2" stroke="#0a8a59" stroke-width="4"/>
+ <path d="M311 58v48M296 82h30" stroke="#050b08" stroke-width="3"/>
+ <!-- porch roof detail -->
+ <path d="M239 139L335 88l91 51" fill="#08764f" stroke="#050b08" stroke-width="8"/>
+ <path d="M252 139l83-42 77 42" fill="#f6f1e6" stroke="#0a8a59" stroke-width="6"/>
+ <!-- squirrel on roof -->
+ <image href="squirrel.svg" x="329" y="-3" width="140" height="64"/>
+ <!-- sign pole -->
+ <rect x="522" y="49" width="24" height="240" rx="5" fill="#eee" stroke="#050b08" stroke-width="8"/>
+ <!-- street sign -->
+ <g transform="translate(421 47) rotate(7)">
+  <rect width="230" height="68" rx="11" fill="#07513a" stroke="#050b08" stroke-width="10"/>
+  <rect x="6" y="6" width="218" height="56" rx="6" fill="none" stroke="#fff" stroke-width="4"/>
+  <text x="115" y="45" text-anchor="middle" font-family="Impact,Haettenschweiler,'Arial Narrow Bold',sans-serif" font-size="33" fill="#fff">S 18th Av E</text>
+ </g>
+ <!-- oversized TRAP wordmark -->
+ <text x="329" y="235" text-anchor="middle" font-family="Impact,Haettenschweiler,'Arial Narrow Bold',sans-serif" font-size="142" letter-spacing="1" fill="#f7f2e7" stroke="#050b08" stroke-width="16" paint-order="stroke">TRAP</text>
+ <text x="329" y="235" text-anchor="middle" font-family="Impact,Haettenschweiler,'Arial Narrow Bold',sans-serif" font-size="142" letter-spacing="1" fill="#f7f2e7" stroke="#087a50" stroke-width="4" paint-order="stroke">TRAP</text>
+ <!-- center X -->
+ <g transform="translate(329 169)" stroke="#050b08" stroke-width="5"><path d="M-10-10L10 10M10-10L-10 10"/></g>
+ <!-- est banner tucked directly under wordmark -->
+ <path d="M198 244H458l-18 35H216z" fill="#050b08" stroke="#087a50" stroke-width="5"/>
+ <text x="329" y="270" text-anchor="middle" font-family="Impact,Haettenschweiler,'Arial Narrow Bold',sans-serif" font-size="26" letter-spacing="5" fill="#fff">EST. 2013</text>
+</g>
+</svg>
