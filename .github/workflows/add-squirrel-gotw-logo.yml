@@ -1,0 +1,35 @@
+name: Add Squirrel Game mascot
+on:
+  push:
+    paths:
+      - '.github/workflows/add-squirrel-gotw-logo.yml'
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Add mascot to Game of the Week
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('index.html')
+          s=p.read_text()
+          old='<div class="featuretitle"><h1>Squirrel Game<br>of the Week</h1></div>'
+          new='<div class="featuretitle"><img class="gotw-mascot" src="assets/squirrel-game-mascot.svg" alt="Mean gray squirrel mascot"><h1>Squirrel Game<br>of the Week</h1></div>'
+          if old not in s:
+              raise SystemExit('Squirrel Game title marker not found')
+          s=s.replace(old,new,1)
+          css='.gotw-mascot{width:82px!important;height:72px;object-fit:contain;flex:0 0 auto;filter:drop-shadow(0 3px 2px rgba(0,0,0,.18))}@media(max-width:680px){.gotw-mascot{width:62px!important;height:58px}}'
+          if '.gotw-mascot{' not in s:
+              s=s.replace('</style></head>',css+'</style></head>',1)
+          p.write_text(s)
+          PY
+      - name: Commit mascot placement
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html
+          git diff --cached --quiet || git commit -m "Add gray squirrel mascot to Game of the Week"
+          git push
