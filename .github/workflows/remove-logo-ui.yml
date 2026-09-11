@@ -1,0 +1,43 @@
+name: Remove logo UI
+on:
+  push:
+    paths:
+      - '.github/workflows/remove-logo-ui.yml'
+permissions:
+  contents: write
+jobs:
+  clean-branding:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Remove logos and keep Traphouse branding
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          p=Path('index.html')
+          s=p.read_text()
+          # Replace broken/image masthead with a clean text masthead.
+          s=re.sub(r'<header class="top">.*?</header>', '<header class="top"><div class="topin textbrand"><div class="brandname">TRAPHOUSE</div><div class="brandsub">LEAGUE HQ • EST. 2013</div><div class="brandtag">Home of the Gentleman’s Tuck</div></div></header>', s, count=1, flags=re.S)
+          # Remove decorative squirrel/logo images throughout UI.
+          s=re.sub(r'<img class="navsquirrel"[^>]*>', '', s)
+          s=re.sub(r'<img src="assets/squirrel\.svg"[^>]*>', '', s)
+          # Remove image-generated section markers.
+          s=s.replace(".sectiontitle:before{content:'';width:31px;height:16px;background:url('assets/squirrel.svg') center/contain no-repeat}", ".sectiontitle:before{display:none}")
+          # Text masthead styling, preserving established green/cream palette.
+          s=s.replace('</style></head>', '''
+          .textbrand{padding:22px 14px 18px;text-align:center;background:linear-gradient(180deg,#075038,#053f2d);color:#fff}
+          .brandname{font:1000 clamp(38px,12vw,72px)/.9 Impact,Haettenschweiler,'Arial Narrow Bold',sans-serif;letter-spacing:.04em;text-shadow:0 3px 0 #02281d}
+          .brandsub{margin-top:8px;font:900 11px Arial,sans-serif;letter-spacing:.18em}
+          .brandtag{margin-top:7px;font:italic 13px Georgia,serif;color:#f5f0e4}
+          @media(max-width:680px){.textbrand{padding:18px 10px 15px}.brandname{font-size:48px}}
+          </style></head>''')
+          p.write_text(s)
+          PY
+      - name: Commit clean branding
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html
+          git diff --cached --quiet || git commit -m "Remove logos and use clean Traphouse text branding"
+          git push
