@@ -1,0 +1,60 @@
+name: Upgrade Squirrel Game of the Week
+on:
+  push:
+    paths:
+      - '.github/workflows/upgrade-squirrel-game.yml'
+permissions:
+  contents: write
+jobs:
+  upgrade:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Patch Squirrel Game of the Week
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('index.html')
+          s=p.read_text()
+
+          css="""
+.rivalryrow{cursor:pointer}.rivalryrow:hover{filter:brightness(.985)}
+.rivalryhint{text-align:center;font-size:8px;color:var(--green);font-weight:1000;margin-top:7px;text-transform:uppercase}
+.rivalry-history{margin-top:14px}.rivalry-game{border-top:1px solid #ddd9d2;padding:9px 0}.rivalry-game:first-child{border-top:0}.rivalry-game-head{display:grid;grid-template-columns:56px 1fr auto;gap:8px;align-items:center;font-size:9px}.rivalry-game-score{font-size:14px;font-weight:1000;color:var(--forest)}.rivalry-top{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px}.rivalry-top div{background:#f7f2e8;border-radius:8px;padding:7px;font-size:8px}.rivalry-top b{display:block;font-size:10px;color:var(--ink);margin-bottom:2px}
+"""
+          if '.rivalry-history{' not in s:
+              s=s.replace('</style></head>',css+'</style></head>')
+
+          old="const mgr=e.target.closest('[data-manager]');if(mgr){showManager(mgr.dataset.manager);return}if(e.target.closest('[data-close-modal]')||e.target.id==='modal')$('modal').classList.remove('open')"
+          new="const mgr=e.target.closest('[data-manager]');if(mgr){showManager(mgr.dataset.manager);return}const riv=e.target.closest('#rivalry');if(riv&&riv.dataset.a&&riv.dataset.b){showRivalryGame(+riv.dataset.a,+riv.dataset.b);return}if(e.target.closest('[data-close-modal]')||e.target.id==='modal')$('modal').classList.remove('open')"
+          if old not in s: raise SystemExit('click handler marker not found')
+          s=s.replace(old,new,1)
+
+          old2="if(best){const g=best.g;$('rivalry').innerHTML=`"
+          new2="if(best){const g=best.g;$('rivalry').dataset.a=g.a.roster_id;$('rivalry').dataset.b=g.b.roster_id;$('rivalry').innerHTML=`"
+          if old2 not in s: raise SystemExit('rivalry render marker not found')
+          s=s.replace(old2,new2,1)
+
+          # Add a tap hint just before the rivalry feature closes.
+          needle="</div>`}"
+          pos=s.find(needle,s.find("$('rivalry').dataset.a"))
+          if pos!=-1:
+              s=s[:pos]+"<div class=\"rivalryhint\">Tap for current box score + rivalry history</div>"+s[pos:]
+
+          marker='function renderCurrent(){'
+          if marker not in s: raise SystemExit('renderCurrent marker not found')
+          js=r'''function historicalTop(m){const ids=(m?.starters||[]).filter(x=>x&&x!=='0'),pts=m?.players_points||{};const pool=ids.length?ids:Object.keys(pts);let best=null;pool.forEach(id=>{const v=Number(pts[id]??0);if(!best||v>best.v)best={id,v}});if(!best)return{name:'—',v:0};return{name:player(best.id).full_name||String(best.id),v:best.v}}
+function currentRivalryBox(g){const slots=starterSlots(),rows=slots.map((slot,i)=>{const a=g.a.starters?.[i],b=g.b.starters?.[i];return`<div class="slot-row">${slotPlayer(g.a,a,'left')}<div class="slot-badge">${esc(slot)}</div>${slotPlayer(g.b,b,'right')}</div>`}).join('');return`<div class="matchup-detail"><div class="matchup-hero"><div class="matchup-hero-grid"><div><div class="matchup-team-name">${esc(teamName(g.ra))}</div><div class="matchup-score">${(+g.a.points||0).toFixed(1)}</div><div class="matchup-proj">Proj ${g.pa?g.pa.toFixed(1):'—'}</div></div><div class="matchup-vs">VS</div><div><div class="matchup-team-name">${esc(teamName(g.rb))}</div><div class="matchup-score">${(+g.b.points||0).toFixed(1)}</div><div class="matchup-proj">Proj ${g.pb?g.pb.toFixed(1):'—'}</div></div></div><div class="matchup-h2h">Current Week ${week()} • Live Sleeper scoring</div></div><div class="lineup-label">Current Scoreboard</div>${rows||'<div class="empty">Lineups not posted yet.</div>'}</div>`}
+function rivalryHistory(aUid,bUid){const out=[];state.history.forEach(h=>h.weeks.forEach(w=>group(w.matchups).forEach(p=>{const ua=ownerId(h,p[0].roster_id),ub=ownerId(h,p[1].roster_id);if(!((ua===aUid&&ub===bUid)||(ua===bUid&&ub===aUid)))return;let a=ua===aUid?p[0]:p[1],b=ua===aUid?p[1]:p[0];const ra=h.rosters.find(r=>r.roster_id===a.roster_id),rb=h.rosters.find(r=>r.roster_id===b.roster_id);out.push({season:h.season,week:w.week,a,b,ra,rb,users:h.users,ta:historicalTop(a),tb:historicalTop(b)})})));return out.sort((x,y)=>y.season-x.season||y.week-x.week)}
+function showRivalryGame(aRoster,bRoster){const g=currentGames().find(x=>(x.a.roster_id===aRoster&&x.b.roster_id===bRoster)||(x.a.roster_id===bRoster&&x.b.roster_id===aRoster));if(!g)return;const aUid=g.ra?.owner_id,bUid=g.rb?.owner_id,hist=rivalryHistory(aUid,bUid),history=hist.length?hist.map(x=>`<div class="rivalry-game"><div class="rivalry-game-head"><b>${x.season} W${x.week}</b><span>${esc(teamName(x.ra,x.users))} vs ${esc(teamName(x.rb,x.users))}</span><span class="rivalry-game-score">${(+x.a.points||0).toFixed(1)}-${(+x.b.points||0).toFixed(1)}</span></div><div class="rivalry-top"><div><span class="tiny">Top scorer</span><b>${esc(x.ta.name)}</b>${x.ta.v.toFixed(1)} pts</div><div><span class="tiny">Top scorer</span><b>${esc(x.tb.name)}</b>${x.tb.v.toFixed(1)} pts</div></div></div>`).join(''):'<div class="empty">No linked historical meetings found.</div>';openModal(`${teamName(g.ra)} vs ${teamName(g.rb)}`,`${currentRivalryBox(g)}<div class="lineup-label">Rivalry History</div><div class="rivalry-history">${history}</div>`,'Squirrel Game of the Week');document.querySelector('#modal .sheet')?.classList.add('matchup-sheet')}
+'''
+          s=s.replace(marker,js+marker,1)
+          p.write_text(s)
+          PY
+      - name: Commit upgrade
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html
+          git diff --cached --quiet || git commit -m "Upgrade Squirrel Game of the Week rivalry detail"
+          git push
