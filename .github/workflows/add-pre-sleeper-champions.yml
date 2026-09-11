@@ -1,0 +1,42 @@
+name: Add pre-Sleeper championship history
+on:
+  push:
+    paths:
+      - '.github/workflows/add-pre-sleeper-champions.yml'
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Add legacy champions and title counts
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('index.html')
+          s=p.read_text()
+          anchor="const LEAGUE='1389345906586828800',API='https://api.sleeper.app/v1';const state="
+          legacy="const LEGACY_CHAMPIONS=[{season:2013,manager:'Plumdog'},{season:2014,manager:'JAH1315'},{season:2015,manager:'Plumdog'},{season:2016,manager:'JAH1315'},{season:2017,manager:'awbrandt34'},{season:2018,manager:'awbrandt34'}];const legacyKey=s=>String(s||'').toLowerCase().replace(/[^a-z0-9]/g,'');function legacyUid(name){const k=legacyKey(name),sets=[state.users,...state.history.slice().reverse().map(h=>h.users||[])];for(const users of sets){for(const u of users||[]){if([u.username,u.display_name].some(v=>legacyKey(v)===k))return u.user_id}}return null}"
+          if 'const LEGACY_CHAMPIONS=' not in s:
+              s=s.replace(anchor,legacy+anchor)
+          old="function careerData(){const m={};state.history.forEach(h=>{h.rosters.forEach(r=>{const u=r.owner_id;if(!u)return;m[u]??={uid:u,w:0,l:0,seasons:0,playoffs:0,titles:[]};m[u].w+=r.settings?.wins||0;m[u].l+=r.settings?.losses||0;m[u].seasons++});const c=h.winners.find(x=>+x.p===1),rid=c?.w||c?.roster_id;if(rid){const u=ownerId(h,rid);if(u)m[u]?.titles.push(h.season)}});return Object.values(m)}"
+          new="function careerData(){const m={};state.history.forEach(h=>{h.rosters.forEach(r=>{const u=r.owner_id;if(!u)return;m[u]??={uid:u,w:0,l:0,seasons:0,playoffs:0,titles:[]};m[u].w+=r.settings?.wins||0;m[u].l+=r.settings?.losses||0;m[u].seasons++});const c=h.winners.find(x=>+x.p===1),rid=c?.w||c?.roster_id;if(rid){const u=ownerId(h,rid);if(u&&!m[u].titles.includes(h.season))m[u].titles.push(h.season)}});LEGACY_CHAMPIONS.forEach(x=>{const u=legacyUid(x.manager);if(!u)return;m[u]??={uid:u,w:0,l:0,seasons:0,playoffs:0,titles:[]};if(!m[u].titles.includes(x.season))m[u].titles.push(x.season)});Object.values(m).forEach(x=>x.titles.sort((a,b)=>a-b));return Object.values(m)}"
+          if old not in s:
+              raise SystemExit('careerData block not found')
+          s=s.replace(old,new)
+          old2="const ch=[];state.history.slice().reverse().forEach(h=>{const c=h.winners.find(x=>+x.p===1),rid=c?.w||c?.roster_id;if(rid){const r=h.rosters.find(x=>x.roster_id===rid);ch.push(`<div class=\"champ\"><span class=\"year\">${h.season}</span> <b>🏆 ${esc(teamName(r,h.users))}</b></div>`)}});$('champions').innerHTML=ch.join('')||'<div class=\"empty\">No champions found.</div>'"
+          new2="const ch=[];state.history.slice().reverse().forEach(h=>{const c=h.winners.find(x=>+x.p===1),rid=c?.w||c?.roster_id;if(rid){const r=h.rosters.find(x=>x.roster_id===rid);ch.push(`<div class=\"champ\"><span class=\"year\">${h.season}</span> <b>🏆 ${esc(teamName(r,h.users))}</b></div>`)}});LEGACY_CHAMPIONS.slice().sort((a,b)=>b.season-a.season).forEach(x=>ch.push(`<div class=\"champ\"><span class=\"year\">${x.season}</span> <b>🏆 ${esc(x.manager)}</b><div class=\"tiny\">Pre-Sleeper champion</div></div>`));$('champions').innerHTML=ch.join('')||'<div class=\"empty\">No champions found.</div>'"
+          if old2 not in s:
+              raise SystemExit('champions render block not found')
+          s=s.replace(old2,new2)
+          s=s.replace('<div class="sectiontitle"><h2>Champions</h2></div>','<div class="sectiontitle"><h2>Champions History</h2></div>')
+          p.write_text(s)
+          PY
+      - name: Commit championship history
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html
+          git diff --cached --quiet || git commit -m "Add pre-Sleeper champions to League HQ"
+          git push
