@@ -1,0 +1,95 @@
+name: Upgrade league records detail
+on:
+  push:
+    paths:
+      - '.github/workflows/upgrade-league-records.yml'
+permissions:
+  contents: write
+jobs:
+  upgrade:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Patch detailed completed-week records
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('index.html')
+          s=p.read_text()
+          css='''
+.record .when{margin-top:5px;font-size:8px;font-weight:900;color:var(--forest)}
+.record .matchdetail{margin-top:4px;font-size:9px;line-height:1.35;color:var(--ink)}
+.record .recordnote{margin-top:5px;font-size:7px;color:var(--muted)}
+.records-rule{margin:0 4px 10px;padding:8px 10px;background:#edf4ef;border:1px solid #ceded4;border-radius:9px;font-size:8px;line-height:1.4;color:#315d49}
+'''
+          if '.records-rule{' not in s:
+              s=s.replace('</style></head>',css+'</style></head>')
+          old='<section class="page" id="page-records"><div class="sectiontitle"><h2>League Records</h2></div><div class="recordgrid" id="recordGrid"></div>'
+          new='<section class="page" id="page-records"><div class="sectiontitle"><h2>League Records</h2></div><div class="records-rule">Scoring records update only after a week is complete. Live/current-week scores are excluded until the following week.</div><div class="recordgrid" id="recordGrid"></div>'
+          if old in s:
+              s=s.replace(old,new,1)
+          js=r'''
+function completedRecordGames(){
+  const out=[],currentSeason=+state.league?.season||0,currentWeek=week();
+  state.history.forEach(h=>{
+    h.weeks.forEach(w=>{
+      if(h.season===currentSeason&&w.week>=currentWeek)return;
+      group(w.matchups).forEach(pair=>{
+        const a=pair[0],b=pair[1],ra=h.rosters.find(r=>r.roster_id===a.roster_id),rb=h.rosters.find(r=>r.roster_id===b.roster_id);
+        if(!ra||!rb)return;
+        const as=+a.points||0,bs=+b.points||0;
+        if(as===0&&bs===0)return;
+        out.push({season:h.season,week:w.week,a,b,ra,rb,users:h.users,as,bs,total:as+bs,margin:Math.abs(as-bs)});
+      });
+    });
+  });
+  return out;
+}
+function recordTeamName(r,g){return teamName(r,g.users)}
+function gameRecordCard(label,g,value,mode='game'){
+  if(!g)return`<div class="record"><div class="label">${esc(label)}</div><div class="value">—</div><div class="note">No completed games available.</div></div>`;
+  const an=esc(recordTeamName(g.ra,g)),bn=esc(recordTeamName(g.rb,g)),score=`${g.as.toFixed(1)} – ${g.bs.toFixed(1)}`;
+  let detail='';
+  if(mode==='teamHigh')detail=`<b>${an}</b> scored ${g.as.toFixed(1)} vs ${bn} (${score})`;
+  else if(mode==='teamLow')detail=`<b>${an}</b> scored ${g.as.toFixed(1)} vs ${bn} (${score})`;
+  else detail=`<b>${an}</b> vs <b>${bn}</b><br>${score}`;
+  return`<div class="record"><div class="label">${esc(label)}</div><div class="value">${esc(value)}</div><div class="when">${g.season} • Week ${g.week}</div><div class="matchdetail">${detail}</div><div class="recordnote">Completed weeks only</div></div>`;
+}
+function renderRecords(){
+  const games=completedRecordGames();
+  if(!games.length){$('recordGrid').innerHTML='<div class="empty">No completed historical matchups available yet.</div>';return}
+  let hi=null,lo=null,big=null,close=null,hiComb=null,loComb=null;
+  games.forEach(g=>{
+    const teams=[{score:g.as,opp:g.bs,roster:g.ra,oppRoster:g.rb},{score:g.bs,opp:g.as,roster:g.rb,oppRoster:g.ra}];
+    teams.forEach(t=>{
+      const z={...g,as:t.score,bs:t.opp,ra:t.roster,rb:t.oppRoster};
+      if(!hi||z.as>hi.as)hi=z;
+      if(z.as>0&&(!lo||z.as<lo.as))lo=z;
+    });
+    if(!big||g.margin>big.margin)big=g;
+    if(!close||g.margin<close.margin)close=g;
+    if(!hiComb||g.total>hiComb.total)hiComb=g;
+    if(!loComb||g.total<loComb.total)loComb=g;
+  });
+  const cards=[
+    gameRecordCard('Highest Team Score',hi,hi?hi.as.toFixed(1):'—','teamHigh'),
+    gameRecordCard('Lowest Team Score',lo,lo?lo.as.toFixed(1):'—','teamLow'),
+    gameRecordCard('Biggest Blowout',big,big?big.margin.toFixed(1)+' pts':'—'),
+    gameRecordCard('Closest Game',close,close?close.margin.toFixed(1)+' pts':'—'),
+    gameRecordCard('Highest Combined Score',hiComb,hiComb?hiComb.total.toFixed(1)+' pts':'—'),
+    gameRecordCard('Lowest Combined Score',loComb,loComb?loComb.total.toFixed(1)+' pts':'—')
+  ];
+  $('recordGrid').innerHTML=cards.join('');
+}
+'''
+          if 'function completedRecordGames(){' not in s:
+              s=s.replace('</script>',js+'\n</script>',1)
+          p.write_text(s)
+          PY
+      - name: Commit record upgrade
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html
+          git diff --cached --quiet || git commit -m "Add detailed completed-week league records"
+          git push
