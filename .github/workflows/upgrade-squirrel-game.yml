@@ -1,3 +1,4 @@
+# trigger 2026-09-11
 name: Upgrade Squirrel Game of the Week
 on:
   push:
@@ -34,12 +35,6 @@ jobs:
           new2="if(best){const g=best.g;$('rivalry').dataset.a=g.a.roster_id;$('rivalry').dataset.b=g.b.roster_id;$('rivalry').innerHTML=`"
           if old2 not in s: raise SystemExit('rivalry render marker not found')
           s=s.replace(old2,new2,1)
-
-          # Add a tap hint just before the rivalry feature closes.
-          needle="</div>`}"
-          pos=s.find(needle,s.find("$('rivalry').dataset.a"))
-          if pos!=-1:
-              s=s[:pos]+"<div class=\"rivalryhint\">Tap for current box score + rivalry history</div>"+s[pos:]
 
           marker='function renderCurrent(){'
           if marker not in s: raise SystemExit('renderCurrent marker not found')
