@@ -1,0 +1,15 @@
+name: Upgrade power rankings detail
+on:
+  push:
+    paths:
+      - '.github/workflows/power-rankings-detail.yml'
+permissions:
+  contents: write
+jobs:
+  upgrade:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Patch power rankings
+        run: python -c "import base64;exec(base64.b64decode('CmZyb20gcGF0aGxpYiBpbXBvcnQgUGF0aAppbXBvcnQgcmUKCnAgPSBQYXRoKCJpbmRleC5odG1sIikKcyA9IHAucmVhZF90ZXh0KCkKCmNzcyA9IHInJycKLnBvd2VyLWludHJve21hcmdpbjowIDRweCAxMHB4O2ZvbnQtc2l6ZTo5cHg7bGluZS1oZWlnaHQ6MS40NTtjb2xvcjp2YXIoLS1tdXRlZCl9Ci5wb3dlcmNhcmRze2Rpc3BsYXk6Z3JpZDtnYXA6MTBweH0KLnBvd2VyY2FyZHtiYWNrZ3JvdW5kOnZhcigtLXBhcGVyKTtib3JkZXI6MXB4IHNvbGlkICNjYWM5YzM7Ym9yZGVyLXJhZGl1czoxNXB4O2JveC1zaGFkb3c6dmFyKC0tc2hhZG93KTtvdmVyZmxvdzpoaWRkZW59Ci5wb3dlcmhlYWR7ZGlzcGxheTpncmlkO2dyaWQtdGVtcGxhdGUtY29sdW1uczo0MnB4IG1pbm1heCgwLDFmcikgYXV0bztnYXA6OXB4O2FsaWduLWl0ZW1zOmNlbnRlcjtwYWRkaW5nOjExcHggMTJweDtiYWNrZ3JvdW5kOmxpbmVhci1ncmFkaWVudCgxODBkZWcsI2ZmZmRmNywjZjdmMmU4KX0KLnBvd2VyLXJhbmt7d2lkdGg6MzRweDtoZWlnaHQ6MzRweDtib3JkZXItcmFkaXVzOjlweDtiYWNrZ3JvdW5kOnZhcigtLWZvcmVzdCk7Y29sb3I6I2ZmZjtk
+...TRUNCATED_PLACEHOLDER...
