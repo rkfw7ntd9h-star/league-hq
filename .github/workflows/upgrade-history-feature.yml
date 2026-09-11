@@ -1,0 +1,42 @@
+name: Upgrade history feature
+on:
+  push:
+    paths:
+      - '.github/workflows/upgrade-history-feature.yml'
+permissions:
+  contents: write
+jobs:
+  upgrade:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Upgrade history feature
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('index.html'); s=p.read_text()
+          css='''.history-game{margin-top:8px;text-align:left}.history-head{text-align:center;margin-bottom:8px}.history-season{font-size:8px;font-weight:1000;color:var(--green);text-transform:uppercase}.history-final{font:1000 14px Impact,Haettenschweiler,'Arial Narrow Bold',sans-serif;color:var(--forest);margin-top:2px}.history-outcomes{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin:8px 0}.history-outcome{background:#f7f2e8;border:1px solid #ddd6c9;border-radius:8px;padding:7px;text-align:center}.history-outcome b{display:block;font-size:9px;color:var(--forest)}.history-outcome span{font-size:7px;color:var(--muted);text-transform:uppercase;font-weight:900}.history-slots{border-top:1px solid #ddd9d2}.history-slots .slot-row{grid-template-columns:minmax(0,1fr) 34px minmax(0,1fr)}.history-slots .slot-player{padding:6px 3px}.history-slots .slot-name{font-size:8px}.history-slots .slot-meta{font-size:6px}.history-slots .slot-points{font-size:11px;margin-top:2px}.history-slots .slot-badge{width:28px;height:21px;font-size:6px}.history-more{display:block;width:100%;margin-top:8px;border:0;border-radius:8px;background:var(--forest);color:#fff;padding:8px;font-size:8px;font-weight:1000;text-transform:uppercase;cursor:pointer}'''
+          if '.history-game{' not in s:s=s.replace('</style></head>',css+'</style></head>')
+          # add history click handler before manager handler
+          needle="const mgr=e.target.closest('[data-manager]');"
+          repl="const hist=e.target.closest('[data-history-game]');if(hist){showHistoryGame(+hist.dataset.season,+hist.dataset.week,+hist.dataset.a,+hist.dataset.b);return}"+needle
+          if '[data-history-game]' not in s:s=s.replace(needle,repl,1)
+          # insert helpers before renderHistory
+          marker='function renderHistory()'
+          if marker not in s: raise SystemExit('renderHistory not found')
+          helpers=r'''function seasonFinish(h,rid){const uid=ownerId(h,rid),champ=h.winners.find(x=>+x.p===1),runner=h.winners.find(x=>+x.p===2),cid=champ&&(champ.w||champ.roster_id),rid2=runner&&(runner.w||runner.roster_id);if(cid&&ownerId(h,cid)===uid)return'Champion';if(rid2&&ownerId(h,rid2)===uid)return'Runner-up';const playoffIds=new Set();(h.winners||[]).forEach(x=>{if(x.w)playoffIds.add(+x.w);if(x.l)playoffIds.add(+x.l);if(x.roster_id)playoffIds.add(+x.roster_id)});return playoffIds.has(+rid)?'Made playoffs':'Missed playoffs'}function historySlotPlayer(m,id,side='left'){if(!id||id==='0')return`<div class="slot-player ${side}"><div class="matchup-empty">—</div></div>`;const p=player(id),v=Number.isFinite(+m?.players_points?.[id])?+m.players_points[id]:0;return`<div class="slot-player ${side}"><div class="slot-name">${esc(p.full_name||id)}</div><div class="slot-meta">${esc([p.position,p.team].filter(Boolean).join(' / '))}</div><div class="slot-points">${v.toFixed(1)}</div></div>`}function historySlots(h,a,b,limit=99){const slots=(h.league?.roster_positions||[]).filter(v=>!['BN','IR','TAXI'].includes(String(v).toUpperCase())),n=Math.min(limit,Math.max(slots.length,a.starters?.length||0,b.starters?.length||0));return Array.from({length:n},(_,i)=>`<div class="slot-row">${historySlotPlayer(a,a.starters?.[i],'left')}<div class="slot-badge">${esc(slots[i]||'FLEX')}</div>${historySlotPlayer(b,b.starters?.[i],'right')}</div>`).join('')}function historyGameData(season,wk,ar,br){const h=state.history.find(x=>+x.season===+season),w=h?.weeks.find(x=>+x.week===+wk),a=w?.matchups.find(x=>+x.roster_id===+ar),b=w?.matchups.find(x=>+x.roster_id===+br);return h&&a&&b?{h,a,b}:null}function showHistoryGame(season,wk,ar,br){const d=historyGameData(season,wk,ar,br);if(!d)return;const{h,a,b}=d,ra=h.rosters.find(r=>r.roster_id===a.roster_id),rb=h.rosters.find(r=>r.roster_id===b.roster_id);openModal(`${h.season} • Week ${wk}`,`<div class="matchup-detail"><div class="matchup-hero"><div class="matchup-hero-grid"><div><div class="matchup-team-name">${esc(teamName(ra,h.users))}</div><div class="matchup-score">${(+a.points||0).toFixed(1)}</div></div><div class="matchup-vs">FINAL</div><div><div class="matchup-team-name">${esc(teamName(rb,h.users))}</div><div class="matchup-score">${(+b.points||0).toFixed(1)}</div></div></div></div><div class="history-outcomes"><div class="history-outcome"><b>${esc(teamName(ra,h.users))}</b><span>${seasonFinish(h,a.roster_id)}</span></div><div class="history-outcome"><b>${esc(teamName(rb,h.users))}</b><span>${seasonFinish(h,b.roster_id)}</span></div></div><div class="lineup-label">Starters</div><div class="history-slots">${historySlots(h,a,b)}</div></div>`,'Traphouse History')}
+'''
+          if 'function showHistoryGame(' not in s:s=s.replace(marker,helpers+marker,1)
+          # replace renderHistory function through next render function
+          start=s.index(marker); candidates=[s.find('function render',start+10),s.find('function managerSeasonRows',start+10)]; ends=[x for x in candidates if x!=-1]; end=min(ends) if ends else s.find('function ',start+20)
+          if end==-1: raise SystemExit('renderHistory end not found')
+          new=r'''function renderHistory(){const cur=week(),c=[];state.history.forEach(h=>{if(+h.season===+(state.league?.season||0))return;const w=h.weeks.find(x=>x.week===cur);if(!w)return;group(w.matchups).forEach(p=>{const a=p[0],b=p[1],total=(+a.points||0)+(+b.points||0);c.push({h,w,a,b,total,margin:Math.abs((+a.points||0)-(+b.points||0))})})});if(!c.length){$('historyWeek').innerHTML='<div class="empty">No linked historical box score for this week yet.</div>';return}c.sort((a,b)=>b.total-a.total||a.margin-b.margin);const x=c[0],h=x.h,a=x.a,b=x.b,ra=h.rosters.find(r=>r.roster_id===a.roster_id),rb=h.rosters.find(r=>r.roster_id===b.roster_id),an=teamName(ra,h.users),bn=teamName(rb,h.users);$('historyWeek').innerHTML=`<div class="history-game"><div class="history-head"><div class="history-season">${h.season} • Week ${x.w.week}</div><div class="history-final">${esc(an)} ${(+a.points||0).toFixed(1)} — ${(+b.points||0).toFixed(1)} ${esc(bn)}</div></div><div class="history-outcomes"><div class="history-outcome"><b>${esc(an)}</b><span>${seasonFinish(h,a.roster_id)}</span></div><div class="history-outcome"><b>${esc(bn)}</b><span>${seasonFinish(h,b.roster_id)}</span></div></div><div class="history-slots">${historySlots(h,a,b,4)}</div><button class="history-more" data-history-game data-season="${h.season}" data-week="${x.w.week}" data-a="${a.roster_id}" data-b="${b.roster_id}">Full box score + season story</button></div>`}'''
+          s=s[:start]+new+s[end:];p.write_text(s)
+          PY
+      - name: Commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html
+          git diff --cached --quiet || git commit -m "Upgrade Traphouse history box score"
+          git push
