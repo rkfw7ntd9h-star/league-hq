@@ -1,15 +1,9 @@
-/* squirrel-sign-nav-v1 */
-.nav{overflow-x:auto;overflow-y:hidden;padding-top:4px;padding-bottom:2px}
-.navin{display:flex!important;align-items:flex-end;gap:4px;min-width:max-content;padding:0 6px}
-.tab{font-size:0!important;line-height:0!important;width:126px!important;height:76px!important;min-width:126px!important;padding:0!important;margin:0!important;border:0!important;border-radius:0!important;background-color:transparent!important;background-position:center!important;background-repeat:no-repeat!important;background-size:contain!important;opacity:.82;filter:saturate(.88);transform:translateY(4px);transition:transform .15s ease,opacity .15s ease,filter .15s ease;position:relative}
-.tab:hover,.tab:focus-visible{opacity:1;filter:saturate(1);transform:translateY(1px)}
-.tab.active{opacity:1;filter:saturate(1.08) drop-shadow(0 3px 2px rgba(0,0,0,.28));transform:translateY(0)}
-.tab.active:before{display:none!important;content:none!important}
-.tab[data-page="home"]{background-image:url("nav/home.webp")!important}
-.tab[data-page="matchups"]{background-image:url("nav/matchups.webp")!important}
-.tab[data-page="power"]{background-image:url("nav/power-rankings.webp")!important}
-.tab[data-page="standings"]{background-image:url("nav/standings.webp")!important}
-.tab[data-page="recap"]{background-image:url("nav/recap.webp")!important}
-.tab[data-page="managers"]{background-image:url("nav/managers.webp")!important}
-.tab[data-page="records"]{background-image:url("nav/records.webp")!important}
-@media(max-width:680px){.navin{gap:1px;padding:0 3px}.tab{width:105px!important;height:66px!important;min-width:105px!important}.nav{scrollbar-width:none}.nav::-webkit-scrollbar{display:none}}
+/* squirrel-sign-nav-v2 */
+.nav{overflow-x:auto;overflow-y:hidden;padding-top:7px;padding-bottom:3px;background:#063f2e}
+.navin{display:flex!important;align-items:flex-end;gap:7px;min-width:max-content;padding:0 8px}
+.tab{box-sizing:border-box!important;position:relative!important;width:132px!important;height:72px!important;min-width:132px!important;margin:0!important;padding:31px 8px 6px!important;border:3px solid #f7f2e8!important;outline:3px solid #111!important;outline-offset:-1px!important;border-radius:9px!important;background:linear-gradient(180deg,#0b5a43,#073d2f)!important;color:#fff!important;font-size:13px!important;line-height:1!important;font-weight:1000!important;text-transform:uppercase!important;text-align:center!important;white-space:nowrap!important;text-shadow:0 2px 1px #111,1px 0 1px #111,-1px 0 1px #111!important;letter-spacing:-.02em!important;box-shadow:0 3px 0 #111!important;opacity:.88;transform:translateY(3px);transition:transform .15s ease,opacity .15s ease;overflow:visible!important}
+.tab:before,.tab.active:before{content:""!important;display:block!important;position:absolute!important;z-index:2!important;left:50%!important;top:-24px!important;width:74px!important;height:51px!important;margin-left:-37px!important;background:url("squirrel-ui.jpeg") center/contain no-repeat!important;filter:drop-shadow(0 2px 1px rgba(0,0,0,.25))!important}
+.tab:after{content:"";position:absolute;right:9px;top:8px;width:5px;height:5px;border-radius:50%;background:#aeb7b0;border:1px solid #222;box-shadow:0 39px 0 #aeb7b0}
+.tab:hover,.tab:focus-visible{opacity:1;transform:translateY(0)}
+.tab.active{opacity:1!important;background:linear-gradient(180deg,#117153,#07503b)!important;transform:translateY(0);box-shadow:0 4px 0 #111,0 0 0 2px #21a673!important}
+@media(max-width:680px){.nav{padding-top:5px;scrollbar-width:none}.nav::-webkit-scrollbar{display:none}.navin{gap:6px;padding:0 6px}.tab{width:113px!important;height:64px!important;min-width:113px!important;padding:28px 5px 5px!important;font-size:11px!important}.tab:before,.tab.active:before{width:64px!important;height:44px!important;margin-left:-32px!important;top:-20px!important}.tab:after{top:7px;right:7px;box-shadow:0 34px 0 #aeb7b0}}
