@@ -1,0 +1,33 @@
+name: Fix Squirrel Game mascot render
+on:
+  push:
+    paths:
+      - '.github/workflows/fix-squirrel-render.yml'
+permissions:
+  contents: write
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Force mascot into Squirrel Game header
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('index.html')
+          s=p.read_text()
+          marker='/* squirrel-render-fix-v1 */'
+          css='''\n/* squirrel-render-fix-v1 */\n.featuretitle::before{content:"";display:block;flex:0 0 92px;width:92px;height:92px;background:url("assets/squirrel-game-logo.webp?v=2") center/contain no-repeat;filter:drop-shadow(0 3px 2px rgba(0,0,0,.18))}\n@media(max-width:680px){.featuretitle::before{flex-basis:76px;width:76px;height:76px}}\n'''
+          if marker not in s:
+              if '</style>' not in s:
+                  raise SystemExit('style close tag not found')
+              s=s.replace('</style>',css+'</style>',1)
+              p.write_text(s)
+          PY
+      - name: Commit fix
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html
+          git diff --cached --quiet || git commit -m "Render actual Squirrel Game mascot"
+          git push
