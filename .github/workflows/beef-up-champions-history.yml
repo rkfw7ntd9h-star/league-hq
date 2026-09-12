@@ -1,0 +1,66 @@
+name: Beef up Champions History
+
+on:
+  push:
+    paths:
+      - '.github/workflows/beef-up-champions-history.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  install:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Patch Champions History
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('index.html')
+          s=p.read_text()
+          marker='/* champions-history-v1 */'
+          if marker in s:
+              print('Champions History upgrade already installed')
+              raise SystemExit(0)
+
+          css='''\n/* champions-history-v1 */\n.champ{display:block;width:100%;text-align:left;background:transparent;border:0;border-top:1px solid #ddd9d2;padding:10px 2px;cursor:pointer;color:var(--ink)}.champ:first-child{border-top:0}.champ-head{display:flex;align-items:center;justify-content:space-between;gap:10px}.champ-main{min-width:0}.champ-main b{font-size:11px}.champ-toggle{flex:0 0 auto;width:25px;height:25px;border-radius:50%;display:grid;place-items:center;background:#e7f0eb;color:var(--forest);font-weight:1000;transition:transform .2s ease}.champ.open .champ-toggle{transform:rotate(180deg)}.champ-detail{display:none;margin-top:9px;padding:10px;background:#f4f0e6;border:1px solid #ddd7c9;border-radius:10px}.champ.open .champ-detail{display:block}.champ-summary{font-size:9px;line-height:1.5;color:#314039}.champ-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:7px;margin-top:8px}.champ-stat{background:#fffdf7;border:1px solid #ddd9d2;border-radius:8px;padding:8px}.champ-stat span{display:block;font-size:7px;text-transform:uppercase;font-weight:1000;color:var(--green)}.champ-stat b{display:block;margin-top:3px;font-size:11px;color:var(--forest)}.champ-stars{margin-top:9px}.champ-stars-title{font-size:7px;text-transform:uppercase;font-weight:1000;color:var(--green);margin-bottom:4px}.champ-star{display:flex;justify-content:space-between;gap:8px;padding:5px 0;border-top:1px solid #ddd9d2;font-size:9px}.champ-star:first-of-type{border-top:0}.champ-legacy{font-size:9px;line-height:1.5;color:var(--muted)}@media(max-width:520px){.champ-grid{grid-template-columns:1fr}}\n'''
+          anchor='</style></head><body>'
+          if anchor not in s:
+              raise SystemExit('CSS anchor not found')
+          s=s.replace(anchor,css+anchor,1)
+
+          old="document.addEventListener('click',e=>{const tab=e.target.closest('.tab');if(tab){switchPage(tab.dataset.page);return}const go=e.target.closest('[data-go]');if(go){switchPage(go.dataset.go);return}const match=e.target.closest('[data-match]');if(match){showMatchup(+match.dataset.a,+match.dataset.b);return}const mgr=e.target.closest('[data-manager]');if(mgr){showManager(mgr.dataset.manager);return}if(e.target.closest('[data-close-modal]')||e.target.id==='modal')$('modal').classList.remove('open')});"
+          new="document.addEventListener('click',e=>{const tab=e.target.closest('.tab');if(tab){switchPage(tab.dataset.page);return}const go=e.target.closest('[data-go]');if(go){switchPage(go.dataset.go);return}const champ=e.target.closest('[data-champ]');if(champ){champ.classList.toggle('open');champ.setAttribute('aria-expanded',champ.classList.contains('open')?'true':'false');return}const match=e.target.closest('[data-match]');if(match){showMatchup(+match.dataset.a,+match.dataset.b);return}const mgr=e.target.closest('[data-manager]');if(mgr){showManager(mgr.dataset.manager);return}if(e.target.closest('[data-close-modal]')||e.target.id==='modal')$('modal').classList.remove('open')});"
+          if old not in s:
+              raise SystemExit('Click handler anchor not found')
+          s=s.replace(old,new,1)
+
+          old_ch="const ch=[];state.history.slice().reverse().forEach(h=>{const c=h.winners.find(x=>+x.p===1),rid=c?.w||c?.roster_id;if(rid){const r=h.rosters.find(x=>x.roster_id===rid);ch.push(`<div class=\"champ\"><span class=\"year\">${h.season}</span> <b>🏆 ${esc(teamName(r,h.users))}</b></div>`)}});LEGACY_CHAMPIONS.slice().sort((a,b)=>b.season-a.season).forEach(x=>ch.push(`<div class=\"champ\"><span class=\"year\">${x.season}</span> <b>🏆 ${esc(x.manager)}</b><div class=\"tiny\">Pre-Sleeper champion</div></div>`));$('champions').innerHTML=ch.join('')||'<div class=\"empty\">No champions found.</div>'"
+          new_ch="const ch=[];state.history.slice().reverse().forEach(h=>{const c=h.winners.find(x=>+x.p===1),rid=c?.w||c?.roster_id,loserRid=c?.l;if(rid){const r=h.rosters.find(x=>x.roster_id===rid);ch.push(championHistoryHtml(h,r,loserRid))}});LEGACY_CHAMPIONS.slice().sort((a,b)=>b.season-a.season).forEach(x=>ch.push(legacyChampionHtml(x)));$('champions').innerHTML=ch.join('')||'<div class=\"empty\">No champions found.</div>'"
+          if old_ch not in s:
+              raise SystemExit('Champions render anchor not found')
+          s=s.replace(old_ch,new_ch,1)
+
+          helper="""\nfunction championTopPlayers(h,champRid){const totals={};h.weeks.forEach(w=>{const m=w.matchups.find(x=>+x.roster_id===+champRid);if(!m)return;Object.entries(m.players_points||{}).forEach(([id,pts])=>{const v=+pts||0;totals[id]=(totals[id]||0)+v})});return Object.entries(totals).map(([id,pts])=>({id,pts,name:player(id).full_name||String(id),pos:player(id).position||''})).sort((a,b)=>b.pts-a.pts).slice(0,5)}\nfunction championshipGame(h,winnerRid,loserRid){if(!loserRid)return null;let found=null;h.weeks.forEach(w=>group(w.matchups).forEach(p=>{const ids=p.map(x=>+x.roster_id);if(ids.includes(+winnerRid)&&ids.includes(+loserRid))found={week:w.week,p}}));return found}\nfunction championHistoryHtml(h,r,loserRid){const loser=h.rosters.find(x=>+x.roster_id===+loserRid),title=teamName(r,h.users),stars=championTopPlayers(h,r.roster_id),game=championshipGame(h,r.roster_id,loserRid),winnerGame=game?.p.find(x=>+x.roster_id===+r.roster_id),loserGame=game?.p.find(x=>+x.roster_id===+loserRid),champScore=winnerGame?`${(+winnerGame.points||0).toFixed(1)} – ${(+loserGame?.points||0).toFixed(1)}`:'Score unavailable',opp=loser?teamName(loser,h.users):'Opponent unavailable',record=`${r.settings?.wins||0}-${r.settings?.losses||0}`,seasonPf=pf(r).toFixed(1),starsHtml=stars.length?stars.map((x,i)=>`<div class=\"champ-star\"><span>${i+1}. <b>${esc(x.name)}</b>${x.pos?` <span class=\"tiny\">${esc(x.pos)}</span>`:''}</span><b>${x.pts.toFixed(1)} pts</b></div>`).join(''):'<div class=\"tiny\">Player scoring detail unavailable.</div>';return`<button class=\"champ\" data-champ aria-expanded=\"false\"><div class=\"champ-head\"><div class=\"champ-main\"><span class=\"year\">${h.season}</span> <b>🏆 ${esc(title)}</b></div><span class=\"champ-toggle\">⌄</span></div><div class=\"champ-detail\"><div class=\"champ-summary\"><b>${esc(title)}</b> finished ${record} with ${seasonPf} regular-season points for and won the ${h.season} Traphouse championship${loser?` over <b>${esc(opp)}</b>`:''}.</div><div class=\"champ-grid\"><div class=\"champ-stat\"><span>Season Record</span><b>${record}</b></div><div class=\"champ-stat\"><span>Points For</span><b>${seasonPf}</b></div><div class=\"champ-stat\"><span>Championship Opponent</span><b>${esc(opp)}</b></div><div class=\"champ-stat\"><span>Championship Final</span><b>${esc(champScore)}${game?` • W${game.week}`:''}</b></div></div><div class=\"champ-stars\"><div class=\"champ-stars-title\">Top Scorers That Season</div>${starsHtml}</div></div></button>`}\nfunction legacyChampionHtml(x){return`<button class=\"champ\" data-champ aria-expanded=\"false\"><div class=\"champ-head\"><div class=\"champ-main\"><span class=\"year\">${x.season}</span> <b>🏆 ${esc(x.manager)}</b><div class=\"tiny\">Pre-Sleeper champion</div></div><span class=\"champ-toggle\">⌄</span></div><div class=\"champ-detail\"><div class=\"champ-legacy\"><b>${esc(x.manager)}</b> is the confirmed ${x.season} Traphouse champion. Championship opponent, final score, and player-level season data are not available in the connected Sleeper archive for this pre-Sleeper season.</div></div></button>`}\n"""
+          insert_anchor='function recordBook(){'
+          if insert_anchor not in s:
+              raise SystemExit('RecordBook anchor not found')
+          s=s.replace(insert_anchor,helper+insert_anchor,1)
+          p.write_text(s)
+          print('Champions History upgrade installed')
+          PY
+      - name: Commit site change
+        run: |
+          if git diff --quiet -- index.html; then
+            echo 'No changes needed'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html
+          git commit -m 'Expand Champions History season details'
+          git push
