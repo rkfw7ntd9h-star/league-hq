@@ -1,0 +1,28 @@
+name: Use Supplied Squirrel UI
+on:
+  push:
+    paths:
+      - '.github/workflows/use-supplied-squirrel-ui.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Patch squirrel artwork
+        run: python scripts/use_supplied_squirrel_ui.py
+      - name: Commit site change
+        run: |
+          if git diff --quiet -- index.html; then
+            echo "No changes needed"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html
+          git commit -m "Use supplied squirrel artwork across UI"
+          git push
