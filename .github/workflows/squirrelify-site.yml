@@ -30,3 +30,4 @@ jobs:
           git add index.html
           git commit -m "Squirrelify League HQ visuals"
           git push
+# deploy marker: squirrelification-v1
