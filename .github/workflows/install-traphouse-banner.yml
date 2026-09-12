@@ -1,0 +1,41 @@
+name: Install Traphouse banner
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/install-traphouse-banner.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  install:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Patch header markup and styling
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('index.html')
+          s=p.read_text()
+          old='<header class="top"><div class="topin textbrand"><div class="brandname">TRAPHOUSE</div><div class="brandsub">LEAGUE HQ • EST. 2013</div><div class="brandtag">Home of the Gentleman’s Tuck</div></div></header>'
+          new='<header class="top"><div class="topin bannerbrand"><img class="headerbanner" src="assets/traphouse-banner.jpg" alt="Traphouse League HQ"></div></header>'
+          if old not in s:
+              raise SystemExit('Expected text header block not found; refusing unsafe edit')
+          s=s.replace(old,new,1)
+          css='\n.bannerbrand{padding:0;background:#053f2d}.headerbanner{display:block;width:100%;height:auto;max-height:260px;object-fit:cover;object-position:center center}\n@media(max-width:680px){.headerbanner{max-height:190px}}\n'
+          marker='</style>'
+          if css.strip() not in s:
+              s=s.replace(marker,css+marker,1)
+          p.write_text(s)
+          PY
+      - name: Commit banner header
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html
+          git diff --cached --quiet && exit 0
+          git commit -m 'Use Traphouse banner header'
+          git push
