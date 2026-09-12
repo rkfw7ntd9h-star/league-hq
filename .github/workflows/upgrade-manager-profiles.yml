@@ -13,6 +13,18 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+      - name: Make manager patch idempotent
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('scripts/upgrade_managers.py')
+          s=p.read_text()
+          old="if old not in s: raise SystemExit('manager section not found')\ns=s.replace(old,new)"
+          new="if 'id=\\\"h2hMatrix\\\"' not in s:\n    if old not in s: raise SystemExit('manager section not found')\n    s=s.replace(old,new)"
+          if old in s:
+              s=s.replace(old,new,1)
+          p.write_text(s)
+          PY
       - name: Upgrade manager profiles
         run: |
           python scripts/upgrade_managers.py
