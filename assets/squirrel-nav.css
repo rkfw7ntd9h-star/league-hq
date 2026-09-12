@@ -1,0 +1,15 @@
+/* squirrel-sign-nav-v1 */
+.nav{overflow-x:auto;overflow-y:hidden;padding-top:4px;padding-bottom:2px}
+.navin{display:flex!important;align-items:flex-end;gap:4px;min-width:max-content;padding:0 6px}
+.tab{font-size:0!important;line-height:0!important;width:126px!important;height:76px!important;min-width:126px!important;padding:0!important;margin:0!important;border:0!important;border-radius:0!important;background-color:transparent!important;background-position:center!important;background-repeat:no-repeat!important;background-size:contain!important;opacity:.82;filter:saturate(.88);transform:translateY(4px);transition:transform .15s ease,opacity .15s ease,filter .15s ease;position:relative}
+.tab:hover,.tab:focus-visible{opacity:1;filter:saturate(1);transform:translateY(1px)}
+.tab.active{opacity:1;filter:saturate(1.08) drop-shadow(0 3px 2px rgba(0,0,0,.28));transform:translateY(0)}
+.tab.active:before{display:none!important;content:none!important}
+.tab[data-page="home"]{background-image:url("nav/home.webp")!important}
+.tab[data-page="matchups"]{background-image:url("nav/matchups.webp")!important}
+.tab[data-page="power"]{background-image:url("nav/power-rankings.webp")!important}
+.tab[data-page="standings"]{background-image:url("nav/standings.webp")!important}
+.tab[data-page="recap"]{background-image:url("nav/recap.webp")!important}
+.tab[data-page="managers"]{background-image:url("nav/managers.webp")!important}
+.tab[data-page="records"]{background-image:url("nav/records.webp")!important}
+@media(max-width:680px){.navin{gap:1px;padding:0 3px}.tab{width:105px!important;height:66px!important;min-width:105px!important}.nav{scrollbar-width:none}.nav::-webkit-scrollbar{display:none}}
