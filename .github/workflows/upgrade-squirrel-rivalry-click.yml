@@ -4,6 +4,7 @@ on:
     branches: [main]
     paths:
       - '.github/workflows/upgrade-squirrel-rivalry-click.yml'
+      - 'scripts/upgrade_squirrel_rivalry_click.py'
   workflow_dispatch:
 permissions:
   contents: write
@@ -14,77 +15,8 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Add Squirrel Game matchup + last 3 rivalry games
-        run: |
-          python - <<'PY'
-          from pathlib import Path
-          p=Path('index.html')
-          s=p.read_text()
-          marker='<!-- squirrel-rivalry-click-v2 -->'
-          if marker in s:
-              raise SystemExit(0)
-          css='''\n/* squirrel-rivalry-click-v2 */\n#rivalry{cursor:pointer;position:relative}\n#rivalry:after{content:"Tap for matchup + last 3 meetings →";display:block;text-align:center;margin-top:8px;color:var(--green);font-size:8px;font-weight:1000;text-transform:uppercase;letter-spacing:.04em}\n.squirrel-history{margin-top:16px;border-top:2px solid #d7d5ce;padding-top:12px}\n.squirrel-history h3{margin:0 0 8px;color:var(--forest);font:1000 17px Impact,Haettenschweiler,'Arial Narrow Bold',sans-serif;text-transform:uppercase}\n.squirrel-history-row{display:grid;grid-template-columns:70px 1fr auto;gap:8px;align-items:center;padding:9px 0;border-top:1px solid #ddd9d2;font-size:10px}\n.squirrel-history-row:first-of-type{border-top:0}\n.squirrel-history-when{font-size:8px;color:var(--muted);font-weight:800;text-transform:uppercase}\n.squirrel-history-result{font-weight:900;line-height:1.25}\n.squirrel-history-score{font-size:13px;font-weight:1000;color:var(--forest);white-space:nowrap}\n.squirrel-winner{color:var(--green)}\n'''
-          if '</style>' not in s:
-              raise SystemExit('No </style> marker; refusing unsafe edit')
-          s=s.replace('</style>',css+'</style>',1)
-          js=r'''\n<script>
-<!-- squirrel-rivalry-click-v2 -->
-(function(){
-  function currentRosterByName(name){
-    return (state.rosters||[]).find(r=>teamName(r,state.users||[])===name)||null;
-  }
-  function lastThreeBetween(aRid,bRid){
-    const aCur=(state.rosters||[]).find(r=>+r.roster_id===+aRid), bCur=(state.rosters||[]).find(r=>+r.roster_id===+bRid);
-    if(!aCur||!bCur)return[];
-    const aUid=aCur.owner_id, bUid=bCur.owner_id, out=[];
-    (state.history||[]).forEach(h=>{
-      (h.weeks||[]).forEach(w=>{
-        if(String(h.season)===String(state.league?.season||'') && +w.week>=+week())return;
-        (group(w.matchups||[])||[]).forEach(pair=>{
-          if(!pair||pair.length<2)return;
-          const x=pair[0], y=pair[1], xu=ownerId(h,x.roster_id), yu=ownerId(h,y.roster_id);
-          const same=(String(xu)===String(aUid)&&String(yu)===String(bUid))||(String(xu)===String(bUid)&&String(yu)===String(aUid));
-          if(!same)return;
-          const xp=+x.points, yp=+y.points;
-          if(!Number.isFinite(xp)||!Number.isFinite(yp))return;
-          const aIsX=String(xu)===String(aUid), aPts=aIsX?xp:yp, bPts=aIsX?yp:xp;
-          out.push({season:+h.season||0,week:+w.week||0,aPts,bPts});
-        });
-      });
-    });
-    out.sort((m,n)=>n.season-m.season||n.week-m.week);
-    return out.slice(0,3);
-  }
-  function addHistory(aRid,bRid,aName,bName){
-    const sheet=document.querySelector('#modal .sheet');
-    if(!sheet)return;
-    const old=sheet.querySelector('.squirrel-history'); if(old)old.remove();
-    const games=lastThreeBetween(aRid,bRid);
-    const block=document.createElement('div'); block.className='squirrel-history';
-    block.innerHTML='<h3>Last 3 Meetings</h3>'+(games.length?games.map(g=>{
-      const tie=g.aPts===g.bPts, aWon=g.aPts>g.bPts;
-      const winner=tie?'Tie':(aWon?aName:bName), loser=tie?'':(aWon?bName:aName);
-      return `<div class="squirrel-history-row"><div class="squirrel-history-when">${g.season} · Week ${g.week}</div><div class="squirrel-history-result">${tie?'<span>Tie</span>':`<span class="squirrel-winner">${winner} won</span><br><span class="muted">${loser} lost</span>`}</div><div class="squirrel-history-score">${g.aPts.toFixed(1)} – ${g.bPts.toFixed(1)}</div></div>`;
-    }).join(''):'<div class="empty">No previous Sleeper matchups found between these managers.</div>');
-    sheet.appendChild(block);
-  }
-  document.addEventListener('click',function(e){
-    const r=e.target.closest('#rivalry');
-    if(!r)return;
-    const names=[...r.querySelectorAll('.rivalryteam .teamname')].map(x=>x.textContent.trim()).filter(Boolean);
-    if(names.length<2)return;
-    const a=currentRosterByName(names[0]), b=currentRosterByName(names[1]);
-    if(!a||!b)return;
-    showMatchup(+a.roster_id,+b.roster_id);
-    setTimeout(()=>addHistory(+a.roster_id,+b.roster_id,names[0],names[1]),0);
-  },true);
-})();
-</script>\n'''
-          if '</body>' not in s:
-              raise SystemExit('No </body> marker; refusing unsafe edit')
-          s=s.replace('</body>',js+'</body>',1)
-          p.write_text(s)
-          PY
+      - name: Patch Squirrel Game rivalry
+        run: python scripts/upgrade_squirrel_rivalry_click.py
       - name: Commit upgrade
         run: |
           git config user.name 'github-actions[bot]'
