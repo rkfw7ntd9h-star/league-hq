@@ -14,28 +14,39 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Patch header markup and styling
+      - name: Build exact banner asset
+        run: |
+          cat assets/.bannerparts/00.txt assets/.bannerparts/01.txt assets/.bannerparts/02.txt assets/.bannerparts/03.txt assets/.bannerparts/04.txt | base64 -d > assets/traphouse-banner.webp
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('assets/traphouse-banner.webp')
+          b=p.read_bytes()
+          if not (b[:4]==b'RIFF' and b[8:12]==b'WEBP'):
+              raise SystemExit('Banner asset validation failed')
+          print('validated banner bytes', len(b))
+          PY
+      - name: Replace text masthead with banner
         run: |
           python - <<'PY'
           from pathlib import Path
+          import re
           p=Path('index.html')
           s=p.read_text()
-          old='<header class="top"><div class="topin textbrand"><div class="brandname">TRAPHOUSE</div><div class="brandsub">LEAGUE HQ • EST. 2013</div><div class="brandtag">Home of the Gentleman’s Tuck</div></div></header>'
-          new='<header class="top"><div class="topin bannerbrand"><img class="headerbanner" src="assets/traphouse-banner.jpg" alt="Traphouse League HQ"></div></header>'
-          if old not in s:
-              raise SystemExit('Expected text header block not found; refusing unsafe edit')
-          s=s.replace(old,new,1)
-          css='\n.bannerbrand{padding:0;background:#053f2d}.headerbanner{display:block;width:100%;height:auto;max-height:260px;object-fit:cover;object-position:center center}\n@media(max-width:680px){.headerbanner{max-height:190px}}\n'
-          marker='</style>'
-          if css.strip() not in s:
-              s=s.replace(marker,css+marker,1)
-          p.write_text(s)
+          new='<header class="top"><div class="topin bannerbrand"><img class="headerbanner" src="assets/traphouse-banner.webp" alt="Traphouse League HQ"></div></header>'
+          s2,n=re.subn(r'<header class="top">.*?</header>',new,s,count=1,flags=re.S)
+          if n!=1:
+              raise SystemExit(f'Expected exactly one top header, found {n}; refusing unsafe edit')
+          css='\n.bannerbrand{padding:0!important;background:#053f2d}.headerbanner{display:block;width:100%;height:auto;max-height:280px;object-fit:cover;object-position:center center}\n@media(max-width:680px){.headerbanner{max-height:190px}}\n'
+          if '.headerbanner{' not in s2:
+              s2=s2.replace('</style>',css+'</style>',1)
+          p.write_text(s2)
           PY
       - name: Commit banner header
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add index.html
+          git add index.html assets/traphouse-banner.webp
           git diff --cached --quiet && exit 0
-          git commit -m 'Use Traphouse banner header'
+          git commit -m 'Install Traphouse banner header'
+          git pull --rebase origin main
           git push
