@@ -1,0 +1,32 @@
+name: Squirrelify League HQ
+on:
+  push:
+    paths:
+      - '.github/workflows/squirrelify-site.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  install:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Add squirrel visuals
+        run: python scripts/squirrelify_site.py
+      - name: Sanity check site
+        run: |
+          grep -q 'squirrelification-v1' index.html
+          grep -q 'squirrel-game-logo.webp' index.html
+      - name: Commit site change
+        run: |
+          if git diff --quiet -- index.html; then
+            echo "No changes needed"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html
+          git commit -m "Squirrelify League HQ visuals"
+          git push
