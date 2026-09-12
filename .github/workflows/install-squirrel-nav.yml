@@ -1,0 +1,30 @@
+name: Install Squirrel Navigation
+on:
+  push:
+    paths:
+      - '.github/workflows/install-squirrel-nav.yml'
+      - 'scripts/install_squirrel_nav.py'
+      - 'assets/squirrel-nav.css'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  install:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Install squirrel navigation
+        run: python scripts/install_squirrel_nav.py
+      - name: Commit site change
+        run: |
+          if git diff --quiet -- index.html; then
+            echo "No changes needed"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html
+          git commit -m "Install squirrel street-sign navigation"
+          git push
