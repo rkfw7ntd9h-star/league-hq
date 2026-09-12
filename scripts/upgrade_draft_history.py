@@ -1,0 +1,47 @@
+from pathlib import Path
+import re
+
+p = Path('index.html')
+s = p.read_text()
+marker = '/* draft-history-v2 */'
+css = r'''
+/* draft-history-v2 */
+.draft-season{display:block;width:100%;text-align:left;background:transparent;border:0;border-top:1px solid #ddd9d2;padding:11px 2px;cursor:pointer;color:var(--ink)}.draft-season:first-child{border-top:0}.draft-head{display:flex;align-items:center;justify-content:space-between;gap:10px}.draft-title{font-weight:1000;color:var(--forest);font-size:12px}.draft-sub{font-size:8px;color:var(--muted);margin-top:2px}.draft-toggle{flex:0 0 auto;width:25px;height:25px;border-radius:50%;display:grid;place-items:center;background:#e7f0eb;color:var(--forest);font-weight:1000;transition:transform .2s ease}.draft-season.open .draft-toggle{transform:rotate(180deg)}.draft-detail{display:none;margin-top:9px;padding:10px;background:#f4f0e6;border:1px solid #ddd7c9;border-radius:10px}.draft-season.open .draft-detail{display:block}.draft-section-title{margin:11px 0 5px;font-size:8px;text-transform:uppercase;font-weight:1000;color:var(--green);letter-spacing:.04em}.draft-section-title:first-child{margin-top:0}.draft-list{background:#fffdf7;border:1px solid #ddd9d2;border-radius:9px;overflow:hidden}.draft-row{display:grid;grid-template-columns:31px minmax(0,1fr) auto;gap:8px;align-items:center;padding:7px 8px;border-top:1px solid #e2ded5;font-size:9px}.draft-row:first-child{border-top:0}.draft-rank{font-weight:1000;color:var(--green)}.draft-player{min-width:0}.draft-player b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.draft-player span{display:block;color:var(--muted);font-size:7px;margin-top:2px}.draft-value{text-align:right;font-weight:1000;color:var(--forest);white-space:nowrap}.draft-bust .draft-value{color:var(--red)}.draft-first{grid-template-columns:42px minmax(0,1fr) minmax(80px,.7fr)}.draft-highlight{background:#e8f2ec;border:1px solid #cadecf;border-radius:9px;padding:9px;font-size:9px;line-height:1.45}.draft-highlight b{color:var(--forest)}.draft-method{margin-top:9px;font-size:7px;line-height:1.4;color:var(--muted)}@media(max-width:520px){.draft-first{grid-template-columns:38px minmax(0,1fr)}.draft-first>:last-child{grid-column:2}.draft-row{grid-template-columns:28px minmax(0,1fr) auto}}
+'''
+if marker not in s:
+    anchor = '</style></head><body>'
+    if anchor not in s:
+        raise SystemExit('CSS anchor not found')
+    s = s.replace(anchor, css + anchor, 1)
+
+old_re = r"async function renderDraftHistory\(\)\{.*?\}\s*async function boot\(\)"
+if not re.search(old_re, s, re.S):
+    if 'function draftSeasonPoints(' in s:
+        print('Draft History upgrade already installed')
+        p.write_text(s)
+        raise SystemExit(0)
+    raise SystemExit('renderDraftHistory anchor not found')
+
+new_js = r'''function draftSeasonPoints(h){const totals={};(h.weeks||[]).forEach(w=>(w.matchups||[]).forEach(m=>Object.entries(m.players_points||{}).forEach(([id,pts])=>{totals[id]=(totals[id]||0)+(+pts||0)})));return totals}
+function draftPlayerName(pk){const md=pk.metadata||{},n=[md.first_name,md.last_name].filter(Boolean).join(' ');return n||player(pk.player_id).full_name||String(pk.player_id||'Unknown')}
+function draftPlayerPos(pk){const md=pk.metadata||{};return md.position||player(pk.player_id).position||''}
+function draftManagerName(h,pk){const uid=pk.picked_by||ownerId(h,+pk.roster_id),u=(h.users||[]).find(x=>String(x.user_id)===String(uid));return u?.display_name||u?.username||managerName(uid)||'Unknown manager'}
+function draftSeasonOutcome(h,uid){const r=(h.rosters||[]).find(x=>String(x.owner_id)===String(uid));if(!r)return'';const champ=h.winners?.find(x=>+x.p===1),crid=champ?.w||champ?.roster_id,isChamp=crid&&String(ownerId(h,+crid))===String(uid);return`${r.settings?.wins||0}-${r.settings?.losses||0}${isChamp?' • 🏆 Champion':''}`}
+function draftAnalysis(h,picks){const pts=draftSeasonPoints(h),ordered=[...picks].sort((a,b)=>(+a.pick_no||999)-(+b.pick_no||999)),eligible=ordered.filter(pk=>!['DEF','DST'].includes(String(draftPlayerPos(pk)).toUpperCase()));const perf=[...eligible].sort((a,b)=>(pts[b.player_id]||0)-(pts[a.player_id]||0));const perfRank=Object.fromEntries(perf.map((pk,i)=>[String(pk.player_id)+'|'+String(pk.pick_no),i+1]));const scored=eligible.map(pk=>{const key=String(pk.player_id)+'|'+String(pk.pick_no),pr=perfRank[key]||eligible.length,pick=+pk.pick_no||999;return{pk,points:pts[pk.player_id]||0,perfRank:pr,value:pick-pr,manager:draftManagerName(h,pk)}});const best=[...scored].sort((a,b)=>b.value-a.value||b.points-a.points).slice(0,5),busts=[...scored].sort((a,b)=>a.value-b.value||a.points-b.points).slice(0,5),first=ordered.filter(pk=>+pk.round===1),lastNonDef=[...ordered].reverse().find(pk=>!['DEF','DST'].includes(String(draftPlayerPos(pk)).toUpperCase()));const by={};scored.forEach(x=>{const uid=x.pk.picked_by||ownerId(h,+x.pk.roster_id)||x.manager;by[uid]??={uid,name:x.manager,score:0,n:0,pts:0};by[uid].score+=x.value;by[uid].pts+=x.points;by[uid].n++});const bestDraft=Object.values(by).sort((a,b)=>b.score-a.score||b.pts-a.pts)[0]||null;return{best,busts,first,lastNonDef,bestDraft}}
+function draftValueRows(items,bust=false){return items.map((x,i)=>`<div class="draft-row ${bust?'draft-bust':''}"><div class="draft-rank">${i+1}</div><div class="draft-player"><b>${esc(draftPlayerName(x.pk))}</b><span>${esc(x.manager)} • R${x.pk.round||'—'} / Pick ${x.pk.pick_no||'—'} • ${x.points.toFixed(1)} season pts</span></div><div class="draft-value">${x.value>=0?'+':''}${x.value}</div></div>`).join('')||'<div class="empty">Not enough player scoring data.</div>'}
+function draftSeasonHtml(h,picks){const a=draftAnalysis(h,picks),current=+h.season===+state.league?.season,first=a.first.map(pk=>`<div class="draft-row draft-first"><div class="draft-rank">#${pk.pick_no||'—'}</div><div class="draft-player"><b>${esc(draftPlayerName(pk))}</b><span>${esc(draftPlayerPos(pk)||'—')}</span></div><div class="draft-value">${esc(draftManagerName(h,pk))}</div></div>`).join('')||'<div class="empty">No first-round picks found.</div>',last=a.lastNonDef,lastText=last?`<b>${esc(draftPlayerName(last))}</b> — ${esc(draftManagerName(h,last))}, Round ${last.round||'—'}, Pick ${last.pick_no||'—'}${draftPlayerPos(last)?` (${esc(draftPlayerPos(last))})`:''}`:'No non-defense pick found.',bd=a.bestDraft,bdText=bd?`<b>${esc(bd.name)}</b> had the best draft-value score (${bd.score>=0?'+':''}${bd.score}) based on where their drafted players finished in season scoring.${bd.uid?` Season result: ${esc(draftSeasonOutcome(h,bd.uid)||'—')}.`:''}`:'Not enough data to rate the draft.';return`<button class="draft-season" data-draft-season aria-expanded="false"><div class="draft-head"><div><div class="draft-title">${h.season} Draft</div><div class="draft-sub">${picks.length} picks analyzed${current?' • season in progress':''}</div></div><span class="draft-toggle">⌄</span></div><div class="draft-detail"><div class="draft-section-title">Best 5 Picks</div><div class="draft-list">${draftValueRows(a.best)}</div><div class="draft-section-title">Biggest 5 Busts</div><div class="draft-list">${draftValueRows(a.busts,true)}</div><div class="draft-section-title">First Round</div><div class="draft-list">${first}</div><div class="draft-section-title">Best Draft</div><div class="draft-highlight">${bdText}</div><div class="draft-section-title">Last Non-Defense Selected</div><div class="draft-highlight">${lastText}</div><div class="draft-method">Value score = overall draft slot minus that player's season scoring rank among drafted non-defense players. Positive numbers indicate a player outperformed draft position; negative numbers indicate a bust. ${current?'Current-season results use points scored so far.':'Season totals use the connected Sleeper matchup archive.'}</div></div></button>`}
+async function renderDraftHistory(){const rows=[];for(const h of state.history.slice().reverse()){const drafts=(h.drafts||[]).filter(d=>d&&d.draft_id);if(!drafts.length)continue;const d=drafts[0],picks=await j(`${API}/draft/${d.draft_id}/picks`).catch(()=>[]);if(!picks.length)continue;rows.push(draftSeasonHtml(h,picks))}$('draftHistory').innerHTML=rows.join('')||'<div class="empty">No linked Sleeper drafts found.</div>'}
+async function boot()'''
+
+s = re.sub(old_re, new_js, s, count=1, flags=re.S)
+script = r'''
+<script>
+/* draft-history-v2 */
+document.addEventListener('click',function(e){const d=e.target.closest&&e.target.closest('[data-draft-season]');if(!d)return;d.classList.toggle('open');d.setAttribute('aria-expanded',d.classList.contains('open')?'true':'false');},true);
+</script>
+'''
+if "/* draft-history-v2 */\ndocument.addEventListener" not in s:
+    s = s.replace('</body>', script + '</body>', 1)
+
+p.write_text(s)
+print('Draft History upgrade installed')
