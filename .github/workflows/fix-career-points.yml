@@ -1,0 +1,35 @@
+name: Fix Career Points Leaderboard
+on:
+  push:
+    paths:
+      - 'scripts/fix_career_points_literal_newlines.py'
+      - '.github/workflows/fix-career-points.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+      - run: python scripts/fix_career_points_literal_newlines.py
+      - name: Verify repaired source
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          s=Path('index.html').read_text()
+          assert r'\n<script>\n/* career-points-leaderboard-v1 */' not in s
+          assert '<script>\n/* career-points-leaderboard-v1 */' in s
+          assert 'id="careerPointsRows"' in s
+          print('career points source verified')
+          PY
+      - name: Commit repair
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html
+          git diff --cached --quiet || git commit -m 'Fix career points leaderboard rendering'
+          git push
