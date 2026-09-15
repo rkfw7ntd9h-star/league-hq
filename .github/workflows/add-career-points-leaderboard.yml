@@ -1,0 +1,25 @@
+name: Add Career Points Leaderboard
+on:
+  push:
+    paths:
+      - 'scripts/add_career_points_leaderboard.py'
+      - '.github/workflows/add-career-points-leaderboard.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  install:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install leaderboard
+        run: python scripts/add_career_points_leaderboard.py
+      - name: Validate marker
+        run: grep -q 'career-points-leaderboard-v1' index.html
+      - name: Commit
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html
+          git diff --cached --quiet || git commit -m 'Add sortable career points leaderboard'
+          git push
