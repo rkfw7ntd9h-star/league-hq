@@ -167,4 +167,43 @@ async function boot(){try{[state.league,state.nfl,state.users,state.rosters]=awa
 /* draft-history-v2 */
 document.addEventListener('click',function(e){const d=e.target.closest&&e.target.closest('[data-draft-season]');if(!d)return;d.classList.toggle('open');d.setAttribute('aria-expanded',d.classList.contains('open')?'true':'false');},true);
 </script>
-\n<script>\n/* career-points-leaderboard-v1 */\n(function(){\n  var sortKey='pf';\n  function managerName(h,uid){\n    var u=(h.users||[]).find(function(x){return String(x.user_id)===String(uid)});\n    return (u&&(u.display_name||u.username))||String(uid||'Unknown');\n  }\n  function totals(){\n    var by={};\n    (state.history||[]).forEach(function(h){\n      (h.weeks||[]).forEach(function(w){\n        var ms=w.matchups||w.data||w; if(!Array.isArray(ms))return;\n        var groups={};\n        ms.forEach(function(m){if(m&&m.matchup_id!=null)(groups[m.matchup_id]||(groups[m.matchup_id]=[])).push(m)});\n        Object.keys(groups).forEach(function(k){\n          var pair=groups[k]; if(pair.length!==2)return;\n          var a=pair[0],b=pair[1],ap=Number(a.points),bp=Number(b.points);\n          if(!Number.isFinite(ap)||!Number.isFinite(bp))return;\n          var au=ownerId(h,+a.roster_id),bu=ownerId(h,+b.roster_id); if(!au||!bu)return;\n          if(!by[au])by[au]={uid:au,name:managerName(h,au),pf:0,pa:0};\n          if(!by[bu])by[bu]={uid:bu,name:managerName(h,bu),pf:0,pa:0};\n          by[au].pf+=ap;by[au].pa+=bp;by[bu].pf+=bp;by[bu].pa+=ap;\n        });\n      });\n    });\n    return Object.keys(by).map(function(k){var x=by[k];x.net=x.pf-x.pa;return x});\n  }\n  function render(){\n    var root=document.getElementById('careerPointsRows');if(!root)return;\n    var rows=totals().sort(function(a,b){return (b[sortKey]-a[sortKey])||(b.pf-a.pf)}).slice(0,12);\n    root.innerHTML=rows.map(function(x,i){var n=x.net,cls=n>0?'netpos':n<0?'netneg':'';return '<div class="trow careerptsrow"><b class="ranknum '+(i===0?'one':'')+'">'+(i+1)+'</b><b>'+x.name+'</b><span>'+x.pf.toFixed(1)+'</span><span>'+x.pa.toFixed(1)+'</span><span class="'+cls+'">'+(n>0?'+':'')+n.toFixed(1)+'</span></div>'}).join('')||'<div class="empty">Career scoring data is unavailable.</div>';\n    document.querySelectorAll('.careerpts-sort').forEach(function(x){x.classList.toggle('active',x.dataset.cpsort===sortKey)});\n  }\n  document.addEventListener('click',function(e){var b=e.target.closest&&e.target.closest('[data-cpsort]');if(!b)return;sortKey=b.dataset.cpsort;render()});\n  var old=switchPage;switchPage=function(page){old(page);if(page==='records')setTimeout(render,0)};\n})();\n</script>\n</body></html>
+
+<script>
+/* career-points-leaderboard-v1 */
+(function(){
+  var sortKey='pf';
+  function managerName(h,uid){
+    var u=(h.users||[]).find(function(x){return String(x.user_id)===String(uid)});
+    return (u&&(u.display_name||u.username))||String(uid||'Unknown');
+  }
+  function totals(){
+    var by={};
+    (state.history||[]).forEach(function(h){
+      (h.weeks||[]).forEach(function(w){
+        var ms=w.matchups||w.data||w; if(!Array.isArray(ms))return;
+        var groups={};
+        ms.forEach(function(m){if(m&&m.matchup_id!=null)(groups[m.matchup_id]||(groups[m.matchup_id]=[])).push(m)});
+        Object.keys(groups).forEach(function(k){
+          var pair=groups[k]; if(pair.length!==2)return;
+          var a=pair[0],b=pair[1],ap=Number(a.points),bp=Number(b.points);
+          if(!Number.isFinite(ap)||!Number.isFinite(bp))return;
+          var au=ownerId(h,+a.roster_id),bu=ownerId(h,+b.roster_id); if(!au||!bu)return;
+          if(!by[au])by[au]={uid:au,name:managerName(h,au),pf:0,pa:0};
+          if(!by[bu])by[bu]={uid:bu,name:managerName(h,bu),pf:0,pa:0};
+          by[au].pf+=ap;by[au].pa+=bp;by[bu].pf+=bp;by[bu].pa+=ap;
+        });
+      });
+    });
+    return Object.keys(by).map(function(k){var x=by[k];x.net=x.pf-x.pa;return x});
+  }
+  function render(){
+    var root=document.getElementById('careerPointsRows');if(!root)return;
+    var rows=totals().sort(function(a,b){return (b[sortKey]-a[sortKey])||(b.pf-a.pf)}).slice(0,12);
+    root.innerHTML=rows.map(function(x,i){var n=x.net,cls=n>0?'netpos':n<0?'netneg':'';return '<div class="trow careerptsrow"><b class="ranknum '+(i===0?'one':'')+'">'+(i+1)+'</b><b>'+x.name+'</b><span>'+x.pf.toFixed(1)+'</span><span>'+x.pa.toFixed(1)+'</span><span class="'+cls+'">'+(n>0?'+':'')+n.toFixed(1)+'</span></div>'}).join('')||'<div class="empty">Career scoring data is unavailable.</div>';
+    document.querySelectorAll('.careerpts-sort').forEach(function(x){x.classList.toggle('active',x.dataset.cpsort===sortKey)});
+  }
+  document.addEventListener('click',function(e){var b=e.target.closest&&e.target.closest('[data-cpsort]');if(!b)return;sortKey=b.dataset.cpsort;render()});
+  var old=switchPage;switchPage=function(page){old(page);if(page==='records')setTimeout(render,0)};
+})();
+</script>
+</body></html>
