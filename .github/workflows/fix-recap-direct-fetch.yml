@@ -1,0 +1,36 @@
+name: Fix Recap Direct Fetch
+on:
+  push:
+    paths:
+      - 'scripts/fix_recap_direct_fetch.py'
+      - '.github/workflows/fix-recap-direct-fetch.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+      - run: python scripts/fix_recap_direct_fetch.py
+      - name: Verify
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          s=Path('index.html').read_text()
+          assert 'async function renderRecap()' in s
+          assert 'Loading latest completed week' in s
+          assert 'await renderRecap();renderManagers();' in s
+          assert 'assets/traphouse-banner.webp' in s
+          print('direct recap fetch verified')
+          PY
+      - name: Commit
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html
+          git diff --cached --quiet || git commit -m 'Fetch recap directly from Sleeper'
+          git push
