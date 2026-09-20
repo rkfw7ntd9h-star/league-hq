@@ -1,0 +1,35 @@
+name: Beef Up Recap Players
+on:
+  push:
+    paths:
+      - 'scripts/beef_up_recap_players.py'
+      - '.github/workflows/beef-up-recap-players.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.x'}
+      - run: python scripts/beef_up_recap_players.py
+      - name: Verify
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          s=Path('index.html').read_text()
+          for x in ['recapHighStarters','recapLowStarters','recapBench','const starterRows=','const benchRows=']:
+            assert x in s
+          assert 'function renderRecap(){const current=+state.league?.season||0' in s
+          assert 'assets/traphouse-banner.webp' in s
+          print('recap player sections verified')
+          PY
+      - name: Commit
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html
+          git diff --cached --quiet || git commit -m 'Add recap starter and bench leaders'
+          git push
