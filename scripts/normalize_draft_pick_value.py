@@ -1,0 +1,13 @@
+from pathlib import Path
+p=Path('index.html')
+s=p.read_text()
+start=s.index('function draftAnalysis(h,picks){')
+end=s.index('function draftValueRows',start)
+new=r'''function draftAnalysis(h,picks){const pts=draftSeasonPoints(h),ordered=[...picks].sort((a,b)=>(+a.pick_no||999)-(+b.pick_no||999)),eligible=ordered.filter(pk=>!['DEF','DST'].includes(String(draftPlayerPos(pk)).toUpperCase())),groups={};eligible.forEach(pk=>{const pos=String(draftPlayerPos(pk)||'OTHER').toUpperCase();(groups[pos]??=[]).push(pk)});const perfRank={};Object.values(groups).forEach(arr=>{[...arr].sort((a,b)=>(pts[b.player_id]||0)-(pts[a.player_id]||0)).forEach((pk,i)=>perfRank[String(pk.player_id)+'|'+String(pk.pick_no)]=i+1)});const draftPosRank={};Object.values(groups).forEach(arr=>{[...arr].sort((a,b)=>(+a.pick_no||999)-(+b.pick_no||999)).forEach((pk,i)=>draftPosRank[String(pk.player_id)+'|'+String(pk.pick_no)]=i+1)});const scored=eligible.map(pk=>{const key=String(pk.player_id)+'|'+String(pk.pick_no),pr=perfRank[key]||1,dr=draftPosRank[key]||1,pos=String(draftPlayerPos(pk)||'OTHER').toUpperCase();return{pk,points:pts[pk.player_id]||0,perfRank:pr,value:dr-pr,pos,manager:draftManagerName(h,pk)}});const best=[...scored].sort((a,b)=>b.value-a.value||b.points-a.points).slice(0,5),busts=[...scored].sort((a,b)=>a.value-b.value||a.points-b.points).slice(0,5),first=ordered.filter(pk=>+pk.round===1),lastNonDef=[...ordered].reverse().find(pk=>!['DEF','DST'].includes(String(draftPlayerPos(pk)).toUpperCase())),by={};scored.forEach(x=>{const uid=x.pk.picked_by||ownerId(h,+x.pk.roster_id)||x.manager;by[uid]??={uid,name:x.manager,score:0,n:0,pts:0};by[uid].score+=x.value;by[uid].pts+=x.points;by[uid].n++});const bestDraft=Object.values(by).sort((a,b)=>b.score-a.score||b.pts-a.pts)[0]||null;return{best,busts,first,lastNonDef,bestDraft}}'''
+s=s[:start]+new+s[end:]
+old="Value score = overall draft slot minus that player's season scoring rank among drafted non-defense players. Positive numbers indicate a player outperformed draft position; negative numbers indicate a bust."
+newtext="Value score compares where a player was drafted among players at his position with where he finished in season scoring at that same position. This prevents high-scoring positions like QB from dominating simply because they score more raw points. Positive numbers indicate a player outperformed his positional draft cost; negative numbers indicate a bust."
+if old not in s: raise SystemExit('method text target missing')
+s=s.replace(old,newtext,1)
+p.write_text(s)
+print('draft value changed to positional draft cost vs positional finish')
