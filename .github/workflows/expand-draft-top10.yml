@@ -1,0 +1,35 @@
+name: Expand Draft Top 10
+on:
+  push:
+    paths:
+      - 'scripts/expand_draft_top10.py'
+      - '.github/workflows/expand-draft-top10.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.x'}
+      - run: python scripts/expand_draft_top10.py
+      - name: Verify
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          s=Path('index.html').read_text()
+          assert "b.value-a.value||b.points-a.points).slice(0,10)" in s
+          assert "a.value-b.value||a.points-b.points).slice(0,10)" in s
+          assert 'const draftPosRank={}' in s
+          assert 'assets/traphouse-banner.webp' in s
+          print('top 10 draft lists verified')
+          PY
+      - name: Commit
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html
+          git diff --cached --quiet || git commit -m 'Show top 10 best picks and busts'
+          git push
